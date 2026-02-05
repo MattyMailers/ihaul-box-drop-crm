@@ -11,6 +11,7 @@ const links = [
   { href: '/supplies', label: 'Supplies', icon: '📋' },
   { href: '/followups', label: 'Follow-Ups', icon: '📞' },
   { href: '/realtors', label: 'Realtors', icon: '🏠' },
+  { href: '/automation', label: 'Automation', icon: '🤖' },
 ];
 
 export default function Nav() {
