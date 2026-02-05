@@ -6,7 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 const links = [
   { href: '/', label: 'Dashboard', icon: '📊' },
   { href: '/drops', label: 'Box Drops', icon: '📦' },
+  { href: '/calendar', label: 'Calendar', icon: '📅' },
   { href: '/routes', label: 'Routes', icon: '🚚' },
+  { href: '/supplies', label: 'Supplies', icon: '📋' },
   { href: '/followups', label: 'Follow-Ups', icon: '📞' },
   { href: '/realtors', label: 'Realtors', icon: '🏠' },
 ];

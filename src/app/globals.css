@@ -24,4 +24,14 @@ body {
   .print-only {
     display: block !important;
   }
+  body {
+    background: white !important;
+  }
+  main {
+    margin-left: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .safe-area-bottom {
+    padding-bottom: 0 !important;
+  }
 }

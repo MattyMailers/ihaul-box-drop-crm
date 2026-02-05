@@ -67,6 +67,12 @@ export default function Dashboard() {
           <Link href="/followups" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors">
             📞 Follow-Ups
           </Link>
+          <Link href="/calendar" className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors">
+            📅 Calendar
+          </Link>
+          <Link href="/supplies" className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors">
+            📋 Supplies
+          </Link>
         </div>
 
         {/* Recent Drops */}
