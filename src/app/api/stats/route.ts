@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const [totalDrops, thisWeek, pendingFollowups, converted, totalDelivered, realtorCount] = await Promise.all([
     db.execute('SELECT COUNT(*) as count FROM box_drops WHERE status != \'cancelled\''),
