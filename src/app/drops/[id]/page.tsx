@@ -155,7 +155,7 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* Notes */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <h2 className="text-sm font-bold text-gray-500 uppercase mb-4">📝 Notes</h2>
           <textarea
             defaultValue={drop.notes || ''}
@@ -164,6 +164,23 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
             rows={4}
             placeholder="Add notes..."
           />
+        </div>
+
+        {/* Delete */}
+        <div className="bg-red-50 rounded-2xl border border-red-200 p-6">
+          <h2 className="text-sm font-bold text-red-500 uppercase mb-2">⚠️ Danger Zone</h2>
+          <p className="text-sm text-red-600 mb-4">Permanently delete this box drop. This cannot be undone.</p>
+          <button
+            onClick={async () => {
+              if (confirm('Are you sure you want to delete this box drop?')) {
+                await fetch(`/api/drops/${id}`, { method: 'DELETE' });
+                router.push('/drops');
+              }
+            }}
+            className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
+          >
+            🗑️ Delete Box Drop
+          </button>
         </div>
       </div>
     </Shell>

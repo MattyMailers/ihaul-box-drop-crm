@@ -47,3 +47,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   return NextResponse.json({ success: true });
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  
+  // Delete associated drops first
+  await db.execute({
+    sql: 'DELETE FROM box_drops WHERE realtor_id = ?',
+    args: [parseInt(id)],
+  });
+  
+  await db.execute({
+    sql: 'DELETE FROM realtors WHERE id = ?',
+    args: [parseInt(id)],
+  });
+
+  return NextResponse.json({ success: true });
+}

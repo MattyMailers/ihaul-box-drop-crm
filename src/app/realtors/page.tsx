@@ -73,6 +73,19 @@ export default function RealtorsPage() {
                     </div>
                     <span className="text-lg font-bold text-gray-900">{convRate}%</span>
                   </div>
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={async () => {
+                        if (confirm(`Delete ${r.first_name} ${r.last_name} and all their drops?`)) {
+                          await fetch(`/api/realtors/${r.id}`, { method: 'DELETE' });
+                          setRealtors(prev => prev.filter(x => x.id !== r.id));
+                        }
+                      }}
+                      className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      🗑️ Delete Realtor
+                    </button>
+                  </div>
                 </div>
               );
             })}
