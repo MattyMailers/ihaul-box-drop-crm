@@ -61,7 +61,7 @@ export default function Dashboard() {
           <Link href="/drops/new" className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors">
             ➕ New Box Drop
           </Link>
-          <Link href="/routes" className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors">
+          <Link href="/routes" className="text-white font-semibold px-5 py-2.5 rounded-xl transition-colors" style={{ backgroundColor: 'var(--navy-900)' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--navy-800)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--navy-900)'}>
             🚚 Today&apos;s Route
           </Link>
           <Link href="/followups" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors">

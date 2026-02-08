@@ -20,7 +20,7 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
 
   useEffect(() => { fetchDrop(); }, [id]);
 
-  const updateField = async (field: string, value: string | number | boolean) => {
+  const updateField = async (field: string, value: string | number | boolean | null) => {
     setSaving(true);
     await fetch(`/api/drops/${id}`, {
       method: 'PATCH',
@@ -94,32 +94,43 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
             <h2 className="text-sm font-bold text-gray-500 uppercase mb-4">📍 Listing Details</h2>
             <div className="space-y-3 text-sm">
               <DetailRow label="Address" value={drop.homeowner_address} />
-              <DetailRow label="Homeowner" value={drop.homeowner_name || '-'} />
-              <DetailRow label="Email" value={drop.homeowner_email || '-'} />
-              <DetailRow label="Phone" value={drop.homeowner_phone || '-'} />
-              <DetailRow label="Listing Status" value={drop.listing_status?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '-'} />
-              <DetailRow label="Campaign" value={drop.campaign_source || '-'} />
+              <DetailRow label="Homeowner" value={drop.homeowner_name} />
+              <DetailRow label="Email" value={drop.homeowner_email} />
+              <DetailRow label="Phone" value={drop.homeowner_phone} />
+              <DetailRow label="Listing Status" value={drop.listing_status?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} />
+              <DetailRow label="Campaign" value={drop.campaign_source} />
             </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-sm font-bold text-gray-500 uppercase mb-4">🏠 Realtor</h2>
             <div className="space-y-3 text-sm">
-              <DetailRow label="Name" value={`${drop.realtor_first_name} ${drop.realtor_last_name || ''}`} />
-              <DetailRow label="Email" value={drop.realtor_email || '-'} />
-              <DetailRow label="Company" value={drop.realtor_company || '-'} />
+              <DetailRow label="Name" value={`${drop.realtor_first_name || ''} ${drop.realtor_last_name || ''}`.trim()} />
+              <DetailRow label="Email" value={drop.realtor_email} />
+              <DetailRow label="Company" value={drop.realtor_company} />
             </div>
           </div>
         </div>
 
-        {/* Dates */}
+        {/* Dates & Reschedule */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <h2 className="text-sm font-bold text-gray-500 uppercase mb-4">📅 Dates</h2>
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-3 gap-4 text-sm mb-4">
             <DetailRow label="Requested" value={drop.requested_date} />
-            <DetailRow label="Scheduled" value={drop.scheduled_date || '-'} />
-            <DetailRow label="Delivered" value={drop.delivered_date || '-'} />
+            <div>
+              <p className="text-gray-400 text-xs">Scheduled</p>
+              <input
+                type="date"
+                defaultValue={drop.scheduled_date || ''}
+                onChange={(e) => updateField('scheduled_date', e.target.value || null)}
+                className="mt-1 w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none text-gray-900 text-sm"
+              />
+            </div>
+            <DetailRow label="Delivered" value={drop.delivered_date} />
           </div>
+          {drop.status !== 'delivered' && drop.status !== 'converted' && (
+            <p className="text-xs text-gray-400">💡 Change the scheduled date to reschedule this drop</p>
+          )}
         </div>
 
         {/* Follow-ups */}
@@ -187,11 +198,16 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
+  const displayValue = value && value !== 'Unknown' && value !== '-' ? value : null;
   return (
     <div>
       <p className="text-gray-400 text-xs">{label}</p>
-      <p className="text-gray-900 font-medium">{value}</p>
+      {displayValue ? (
+        <p className="text-gray-900 font-medium">{displayValue}</p>
+      ) : (
+        <p className="text-gray-300 italic text-sm">Not provided</p>
+      )}
     </div>
   );
 }

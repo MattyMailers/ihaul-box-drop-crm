@@ -2,13 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+interface RouteWaypoint {
+  location: {
+    address: string;
+  };
+}
+
+interface RoutesApiResponse {
+  routes?: Array<{
+    optimizedIntermediateWaypointIndex?: number[];
+    distanceMeters?: number;
+    duration?: string;
+    legs?: Array<{
+      distanceMeters?: number;
+      duration?: string;
+    }>;
+  }>;
+  error?: {
+    message: string;
+    code: number;
+  };
+}
+
 /**
  * POST /api/routes/optimize
  * 
  * Accepts: { addresses: string[], startAddress?: string, endAddress?: string }
  * 
- * For now: generates a Google Maps URL with all stops.
- * When GOOGLE_MAPS_API_KEY is added: calls Google Routes API for optimal waypoint order.
+ * Uses Google Routes API for optimal waypoint ordering when API key is available.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -24,33 +45,102 @@ export async function POST(req: NextRequest) {
 
     const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
 
-    if (googleMapsApiKey) {
-      // TODO: When Maps API key is available, use Google Routes API for optimization
-      // POST https://routes.googleapis.com/directions/v2:computeRoutes
-      // with optimizeWaypointOrder: true
-      
-      // For now, still fall through to the simple URL generation
+    if (googleMapsApiKey && addresses.length > 1) {
+      // Use Google Routes API for optimization
+      try {
+        const intermediates: RouteWaypoint[] = addresses.map(addr => ({
+          location: { address: addr }
+        }));
+
+        const routesResponse = await fetch(
+          'https://routes.googleapis.com/directions/v2:computeRoutes',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': googleMapsApiKey,
+              'X-Goog-FieldMask': 'routes.optimizedIntermediateWaypointIndex,routes.distanceMeters,routes.duration,routes.legs.distanceMeters,routes.legs.duration',
+            },
+            body: JSON.stringify({
+              origin: { address: start },
+              destination: { address: end },
+              intermediates,
+              optimizeWaypointOrder: true,
+              travelMode: 'DRIVE',
+              routingPreference: 'TRAFFIC_AWARE',
+            }),
+          }
+        );
+
+        const routesData: RoutesApiResponse = await routesResponse.json();
+
+        if (routesData.error) {
+          throw new Error(routesData.error.message);
+        }
+
+        if (routesData.routes && routesData.routes.length > 0) {
+          const route = routesData.routes[0];
+          const optimizedOrder = route.optimizedIntermediateWaypointIndex || [];
+          
+          // Reorder addresses based on optimized indices
+          const optimizedAddresses = optimizedOrder.map(idx => addresses[idx]);
+          const allStops = [start, ...optimizedAddresses, end];
+          
+          // Generate Google Maps URL with optimized order
+          const encodedStops = allStops.map(a => encodeURIComponent(a));
+          const mapsUrl = `https://www.google.com/maps/dir/${encodedStops.join('/')}/`;
+          
+          const waypointParam = optimizedAddresses.map(a => encodeURIComponent(a)).join('|');
+          const mapsApiUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(end)}&waypoints=${waypointParam}`;
+
+          // Calculate total distance and duration
+          const totalDistanceMeters = route.distanceMeters || 0;
+          const totalDistanceMiles = (totalDistanceMeters / 1609.344).toFixed(1);
+          const durationSeconds = route.duration ? parseInt(route.duration.replace('s', '')) : 0;
+          const durationMinutes = Math.round(durationSeconds / 60);
+
+          return NextResponse.json({
+            success: true,
+            optimized: true,
+            mapsUrl,
+            mapsApiUrl,
+            stops: allStops,
+            stopCount: allStops.length,
+            originalOrder: addresses,
+            optimizedOrder: optimizedAddresses,
+            metrics: {
+              totalDistanceMiles,
+              totalDurationMinutes: durationMinutes,
+              legs: route.legs?.map(leg => ({
+                distanceMiles: ((leg.distanceMeters || 0) / 1609.344).toFixed(1),
+                durationMinutes: Math.round((parseInt(leg.duration?.replace('s', '') || '0')) / 60),
+              })),
+            },
+          });
+        }
+      } catch (apiError) {
+        console.error('Google Routes API error:', apiError);
+        // Fall through to simple URL generation
+      }
     }
 
-    // Generate Google Maps directions URL
-    // Format: https://www.google.com/maps/dir/start/waypoint1/waypoint2/.../end/
+    // Fallback: Generate Google Maps directions URL without optimization
     const allStops = [start, ...addresses, end];
     const encodedStops = allStops.map(a => encodeURIComponent(a));
     const mapsUrl = `https://www.google.com/maps/dir/${encodedStops.join('/')}/`;
 
-    // Also generate a shorter URL with the data parameter format
     const waypointParam = addresses.map(a => encodeURIComponent(a)).join('|');
     const mapsApiUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(end)}&waypoints=${waypointParam}`;
 
     return NextResponse.json({
       success: true,
-      optimized: false, // Will be true when Routes API is used
+      optimized: false,
       mapsUrl,
       mapsApiUrl,
       stops: allStops,
       stopCount: allStops.length,
       note: googleMapsApiKey 
-        ? 'Routes API optimization available but not yet implemented'
+        ? 'Single stop - optimization not needed'
         : 'Add GOOGLE_MAPS_API_KEY env var to enable route optimization',
     });
   } catch (err: unknown) {

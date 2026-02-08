@@ -26,10 +26,10 @@ export default function Nav() {
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="no-print hidden md:flex fixed left-0 top-0 bottom-0 w-56 bg-gray-900 flex-col z-50">
-        <div className="p-4 border-b border-gray-700">
+      <nav className="no-print hidden md:flex fixed left-0 top-0 bottom-0 w-56 flex-col z-50" style={{ backgroundColor: 'var(--navy-900)' }}>
+        <div className="p-4 border-b" style={{ borderColor: 'var(--navy-700)' }}>
           <h1 className="text-xl font-bold text-white">📦 iHaul iMove</h1>
-          <p className="text-orange-400 text-sm font-medium">Box Drop CRM</p>
+          <p className="text-sm font-medium" style={{ color: 'var(--gold-400)' }}>Box Drop CRM</p>
         </div>
         <div className="flex-1 py-4">
           {links.map((link) => (
@@ -38,9 +38,12 @@ export default function Nav() {
               href={link.href}
               className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
                 pathname === link.href
-                  ? 'bg-orange-500 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'text-white'
+                  : 'text-gray-300 hover:text-white'
               }`}
+              style={pathname === link.href ? { backgroundColor: 'var(--orange-500)' } : {}}
+              onMouseEnter={(e) => { if (pathname !== link.href) e.currentTarget.style.backgroundColor = 'var(--navy-800)' }}
+              onMouseLeave={(e) => { if (pathname !== link.href) e.currentTarget.style.backgroundColor = '' }}
             >
               <span>{link.icon}</span>
               {link.label}
@@ -49,14 +52,15 @@ export default function Nav() {
         </div>
         <button
           onClick={handleLogout}
-          className="p-4 text-gray-400 hover:text-white text-sm text-left border-t border-gray-700"
+          className="p-4 text-gray-400 hover:text-white text-sm text-left"
+          style={{ borderTop: '1px solid var(--navy-700)' }}
         >
           🚪 Sign Out
         </button>
       </nav>
 
       {/* Mobile bottom nav */}
-      <nav className="no-print md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 flex justify-around z-50 safe-area-bottom">
+      <nav className="no-print md:hidden fixed bottom-0 left-0 right-0 flex justify-around z-50 safe-area-bottom" style={{ backgroundColor: 'var(--navy-900)' }}>
         {links.map((link) => (
           <Link
             key={link.href}

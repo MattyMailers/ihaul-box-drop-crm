@@ -95,7 +95,7 @@ export default function DropsPage() {
                         </td>
                         <td className="px-6 py-4"><StatusBadge status={drop.status} /></td>
                         <td className="px-6 py-4 text-sm text-gray-600">
-                          {drop.listing_status?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '-'}
+                          {drop.listing_status ? drop.listing_status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : <span className="text-gray-300 italic">—</span>}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">{drop.requested_date}</td>
                       </tr>

@@ -1,6 +1,19 @@
 @import "tailwindcss";
 
 :root {
+  /* iHaul Navy Blue Primary */
+  --navy-50: #f0f4f8;
+  --navy-100: #d9e2ec;
+  --navy-200: #bcccdc;
+  --navy-300: #9fb3c8;
+  --navy-400: #829ab1;
+  --navy-500: #627d98;
+  --navy-600: #486581;
+  --navy-700: #334e68;
+  --navy-800: #243b53;
+  --navy-900: #1e3a5f;
+  
+  /* iHaul Orange/Gold Accent */
   --orange-50: #fff7ed;
   --orange-100: #ffedd5;
   --orange-200: #fed7aa;
@@ -11,10 +24,23 @@
   --orange-700: #c2410c;
   --orange-800: #9a3412;
   --orange-900: #7c2d12;
+
+  /* Gold accent for highlights */
+  --gold-400: #fbbf24;
+  --gold-500: #f59e0b;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Navy themed sidebar */
+.bg-navy {
+  background-color: var(--navy-900);
+}
+
+.text-navy {
+  color: var(--navy-900);
 }
 
 @media print {

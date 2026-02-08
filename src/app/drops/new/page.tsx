@@ -17,6 +17,7 @@ export default function NewDropPage() {
   const [realtors, setRealtors] = useState<Realtor[]>([]);
   const [loading, setLoading] = useState(false);
   const [showNewRealtor, setShowNewRealtor] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<{id: number; scheduled_date: string; created_at: string} | null>(null);
 
   const [form, setForm] = useState({
     realtor_id: '',
@@ -42,9 +43,10 @@ export default function NewDropPage() {
     fetch('/api/realtors').then(r => r.json()).then(setRealtors);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, allowDuplicate = false) => {
     e.preventDefault();
     setLoading(true);
+    setDuplicateError(null);
 
     let realtorId = form.realtor_id;
 
@@ -59,11 +61,20 @@ export default function NewDropPage() {
       realtorId = String(data.id);
     }
 
-    await fetch('/api/drops', {
+    const url = allowDuplicate ? '/api/drops?allow_duplicate=true' : '/api/drops';
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, realtor_id: parseInt(realtorId) }),
     });
+
+    const data = await res.json();
+
+    if (res.status === 409 && data.error === 'duplicate_address') {
+      setDuplicateError(data.existing);
+      setLoading(false);
+      return;
+    }
 
     router.push('/drops');
   };
@@ -183,6 +194,32 @@ export default function NewDropPage() {
               </div>
             </div>
           </div>
+
+          {duplicateError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <p className="text-amber-800 font-medium mb-2">⚠️ Duplicate Address Detected</p>
+              <p className="text-amber-700 text-sm mb-3">
+                A box drop already exists for this address (Drop #{duplicateError.id}, 
+                {duplicateError.scheduled_date ? ` scheduled ${duplicateError.scheduled_date}` : ` created ${duplicateError.created_at}`}).
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/drops/${duplicateError.id}`)}
+                  className="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg text-sm font-medium hover:bg-amber-200"
+                >
+                  View Existing Drop
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600"
+                >
+                  Create Anyway
+                </button>
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"

@@ -37,11 +37,36 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const allowDuplicate = searchParams.get('allow_duplicate') === 'true';
+
   const body = await req.json();
   const {
     realtor_id, homeowner_address, homeowner_name, homeowner_email, homeowner_phone,
     listing_status, campaign_source, status, scheduled_date, notes
   } = body;
+
+  // Check for duplicate address unless explicitly allowed
+  if (!allowDuplicate && homeowner_address) {
+    const existing = await db.execute({
+      sql: `SELECT id, scheduled_date, created_at FROM box_drops WHERE homeowner_address = ? LIMIT 1`,
+      args: [homeowner_address],
+    });
+    
+    if (existing.rows.length > 0) {
+      const existingDrop = existing.rows[0];
+      return NextResponse.json({
+        error: 'duplicate_address',
+        message: 'A box drop already exists for this address',
+        existing: {
+          id: existingDrop.id,
+          scheduled_date: existingDrop.scheduled_date,
+          created_at: existingDrop.created_at,
+        },
+        hint: 'Add ?allow_duplicate=true to bypass this check',
+      }, { status: 409 });
+    }
+  }
 
   const result = await db.execute({
     sql: `INSERT INTO box_drops (realtor_id, homeowner_address, homeowner_name, homeowner_email, homeowner_phone, listing_status, campaign_source, status, scheduled_date, notes)
