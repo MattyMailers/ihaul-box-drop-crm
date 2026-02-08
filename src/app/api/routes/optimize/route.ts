@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 interface RouteWaypoint {
-  location: {
-    address: string;
-  };
+  address: string;
 }
 
 interface RoutesApiResponse {
@@ -49,7 +47,7 @@ export async function POST(req: NextRequest) {
       // Use Google Routes API for optimization
       try {
         const intermediates: RouteWaypoint[] = addresses.map(addr => ({
-          location: { address: addr }
+          address: addr
         }));
 
         const routesResponse = await fetch(
