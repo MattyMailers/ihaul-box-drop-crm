@@ -22,6 +22,19 @@ type Drop = {
   realtor_company: string;
 };
 
+type OptimizationResult = {
+  success: boolean;
+  optimized: boolean;
+  mapsUrl: string;
+  mapsApiUrl?: string;
+  originalOrder: string[];
+  optimizedOrder: string[];
+  metrics?: {
+    totalDistanceMiles: string;
+    totalDurationMinutes: number;
+  };
+};
+
 function getMonday(d: Date): Date {
   const date = new Date(d);
   const day = date.getDay();
@@ -47,6 +60,99 @@ function formatWeekLabel(monday: Date): string {
   return `${monday.toLocaleDateString('en-US', opts)} – ${sunday.toLocaleDateString('en-US', opts)}, ${sunday.getFullYear()}`;
 }
 
+// Detect iOS for appropriate URL scheme
+function isIOS(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+// Success overlay component
+function OptimizationSuccessModal({ 
+  result, 
+  onClose, 
+  onOpenMaps 
+}: { 
+  result: OptimizationResult; 
+  onClose: () => void;
+  onOpenMaps: (url: string, useApp: boolean) => void;
+}) {
+  const { metrics, optimized, mapsUrl } = result;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+        <div className="text-center mb-6">
+          <div className="text-6xl mb-4">🎯</div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {optimized ? 'Route Optimized!' : 'Route Ready'}
+          </h2>
+          {metrics && (
+            <div className="mt-4 bg-green-50 rounded-2xl p-4">
+              <div className="flex justify-center gap-8">
+                <div>
+                  <p className="text-3xl font-bold text-green-600">{metrics.totalDistanceMiles}</p>
+                  <p className="text-sm text-gray-500">miles</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-green-600">~{metrics.totalDurationMinutes}</p>
+                  <p className="text-sm text-gray-500">minutes</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {optimized && (
+            <p className="text-gray-500 mt-4 text-sm">
+              Stops have been reordered for the most efficient route.
+            </p>
+          )}
+        </div>
+        
+        <div className="space-y-3">
+          {/* Primary: Open in Google Maps App (iOS) or browser */}
+          <button
+            onClick={() => onOpenMaps(mapsUrl, true)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            🗺️ Open in Google Maps
+            {isIOS() && <span className="text-xs opacity-75">(App)</span>}
+          </button>
+          
+          {/* Secondary: Open in browser (good for desktop or if app not installed) */}
+          <button
+            onClick={() => onOpenMaps(mapsUrl, false)}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            🌐 Open in Browser
+          </button>
+          
+          <button
+            onClick={onClose}
+            className="w-full text-gray-500 hover:text-gray-700 font-medium py-2 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+      
+      <style jsx>{`
+        @keyframes scale-in {
+          from {
+            transform: scale(0.9);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        .animate-scale-in {
+          animation: scale-in 0.2s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function RoutesPage() {
   const [drops, setDrops] = useState<Drop[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,9 +160,12 @@ export default function RoutesPage() {
   const [startLocation, setStartLocation] = useState('iHaul iMove, Colorado Springs, CO');
   const [endLocation, setEndLocation] = useState('iHaul iMove, Colorado Springs, CO');
   const [optimizing, setOptimizing] = useState(false);
+  const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
+  const [isOptimizedOrder, setIsOptimizedOrder] = useState(false);
 
   const fetchDrops = useCallback(() => {
     setLoading(true);
+    setIsOptimizedOrder(false);
     const start = formatDate(weekStart);
     const end = formatDate(addDays(weekStart, 6));
     // Fetch pending drops for the selected week
@@ -96,6 +205,29 @@ export default function RoutesPage() {
     fetchDrops();
   };
 
+  // Open Google Maps with appropriate URL scheme for the platform
+  const openGoogleMaps = (mapsUrl: string, preferApp: boolean) => {
+    if (preferApp && isIOS()) {
+      // Use comgooglemapsurl:// scheme to open in Google Maps iOS app
+      // This converts an HTTPS Google Maps URL to open in the app
+      const appUrl = `comgooglemapsurl://${mapsUrl.replace('https://', '')}`;
+      
+      // Try to open the app, fall back to browser
+      const start = Date.now();
+      window.location.href = appUrl;
+      
+      // If the app doesn't open within 1.5s, fall back to browser
+      setTimeout(() => {
+        if (Date.now() - start < 2000) {
+          window.open(mapsUrl, '_blank');
+        }
+      }, 1500);
+    } else {
+      // Open in browser (works everywhere)
+      window.open(mapsUrl, '_blank');
+    }
+  };
+
   const openGoogleMapsRoute = () => {
     if (drops.length === 0) return;
     
@@ -105,7 +237,7 @@ export default function RoutesPage() {
     
     // Path-based format works better across devices including mobile
     const url = `https://www.google.com/maps/dir/${encodedStops.join('/')}`;
-    window.open(url, '_blank');
+    openGoogleMaps(url, true);
   };
 
   const optimizeRoute = async () => {
@@ -121,17 +253,25 @@ export default function RoutesPage() {
           endAddress: endLocation,
         }),
       });
-      const data = await res.json();
+      const data: OptimizationResult = await res.json();
       
-      // Prefer the path-based URL for mobile compatibility
-      if (data.mapsUrl) {
-        window.open(data.mapsUrl, '_blank');
-      } else if (data.mapsApiUrl) {
-        window.open(data.mapsApiUrl, '_blank');
+      if (data.success) {
+        // Reorder drops based on optimized order
+        if (data.optimized && data.optimizedOrder) {
+          const addressToDropMap = new Map(drops.map(d => [d.homeowner_address, d]));
+          const reorderedDrops = data.optimizedOrder
+            .map(addr => addressToDropMap.get(addr))
+            .filter((d): d is Drop => d !== undefined);
+          
+          if (reorderedDrops.length === drops.length) {
+            setDrops(reorderedDrops);
+            setIsOptimizedOrder(true);
+          }
+        }
+        
+        // Show success modal
+        setOptimizationResult(data);
       }
-      
-      // If optimization returned reordered addresses, we could update local state here
-      // For now, just open the URL
     } catch (err) {
       console.error('Route optimization failed:', err);
     } finally {
@@ -167,6 +307,15 @@ export default function RoutesPage() {
   return (
     <Shell>
       <div className="p-4 md:p-8">
+        {/* Success Modal */}
+        {optimizationResult && (
+          <OptimizationSuccessModal
+            result={optimizationResult}
+            onClose={() => setOptimizationResult(null)}
+            onOpenMaps={openGoogleMaps}
+          />
+        )}
+
         {/* Header with week selector */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
           <div>
@@ -241,8 +390,15 @@ export default function RoutesPage() {
           </button>
         </div>
 
-        {/* Stops count */}
-        <p className="text-sm text-gray-500 mb-4">{drops.length} stops pending</p>
+        {/* Stops count with optimization badge */}
+        <div className="flex items-center gap-3 mb-4">
+          <p className="text-sm text-gray-500">{drops.length} stops pending</p>
+          {isOptimizedOrder && (
+            <span className="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+              ✅ Optimized Order
+            </span>
+          )}
+        </div>
 
         {loading ? (
           <p className="text-center text-gray-400 p-8">Loading route...</p>
@@ -257,7 +413,7 @@ export default function RoutesPage() {
             {drops.map((drop, i) => (
               <div key={drop.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
                 <div className="flex items-start gap-4">
-                  <div className="bg-orange-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0">
+                  <div className={`${isOptimizedOrder ? 'bg-green-500' : 'bg-orange-500'} text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0 transition-colors`}>
                     {i + 1}
                   </div>
                   <div className="flex-1">
@@ -289,14 +445,12 @@ export default function RoutesPage() {
                           ✅ Mark Delivered
                         </button>
                       )}
-                      <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(drop.homeowner_address)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => openGoogleMaps(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(drop.homeowner_address)}`, true)}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
                       >
                         📍 Navigate
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </div>
