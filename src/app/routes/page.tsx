@@ -30,9 +30,13 @@ type OptimizationResult = {
   mapsApiUrl?: string;
   originalOrder: string[];
   optimizedOrder: string[];
+  encodedPolyline?: string | null;
   metrics?: {
     totalDistanceMiles: string;
     totalDurationMinutes: number;
+    drivingMinutes?: number;
+    stopTimeMinutes?: number;
+    stopCount?: number;
   };
 };
 
@@ -255,9 +259,19 @@ function OptimizationSuccessModal({
                 </div>
                 <div>
                   <p className="text-3xl font-bold" style={{ color: IHUL_NAVY }}>~{metrics.totalDurationMinutes}</p>
-                  <p className="text-sm text-gray-500">minutes</p>
+                  <p className="text-sm text-gray-500">minutes total</p>
                 </div>
               </div>
+              {metrics.drivingMinutes && metrics.stopTimeMinutes && (
+                <p className="text-xs text-gray-500 mt-3 text-center">
+                  ({metrics.drivingMinutes} min driving + {metrics.stopTimeMinutes} min for {metrics.stopCount} {metrics.stopCount === 1 ? 'stop' : 'stops'} @ 5 min each)
+                </p>
+              )}
+              {metrics.totalDurationMinutes && (
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  🏁 Leave now to finish by {new Date(Date.now() + metrics.totalDurationMinutes * 60000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </p>
+              )}
             </div>
           )}
           {optimized && (
@@ -516,6 +530,8 @@ export default function RoutesPage() {
           isOpen={showMapPreview}
           onClose={() => setShowMapPreview(false)}
           onStartNavigation={startNavigation}
+          encodedPolyline={optimizationResult?.encodedPolyline}
+          metrics={optimizationResult?.metrics}
         />
 
         {/* Navigation Modal */}

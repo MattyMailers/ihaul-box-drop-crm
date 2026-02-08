@@ -14,6 +14,9 @@ interface RoutesApiResponse {
     optimizedIntermediateWaypointIndex?: number[];
     distanceMeters?: number;
     duration?: string;
+    polyline?: {
+      encodedPolyline?: string;
+    };
     legs?: Array<{
       distanceMeters?: number;
       duration?: string;
@@ -72,7 +75,7 @@ export async function POST(req: NextRequest) {
             headers: {
               'Content-Type': 'application/json',
               'X-Goog-Api-Key': googleMapsApiKey,
-              'X-Goog-FieldMask': 'routes.optimizedIntermediateWaypointIndex,routes.distanceMeters,routes.duration,routes.legs.distanceMeters,routes.legs.duration',
+              'X-Goog-FieldMask': 'routes.optimizedIntermediateWaypointIndex,routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.legs.distanceMeters,routes.legs.duration',
             },
             body: JSON.stringify({
               origin: { address: start },
@@ -110,7 +113,15 @@ export async function POST(req: NextRequest) {
           const totalDistanceMeters = route.distanceMeters || 0;
           const totalDistanceMiles = (totalDistanceMeters / 1609.344).toFixed(1);
           const durationSeconds = route.duration ? parseInt(route.duration.replace('s', '')) : 0;
-          const durationMinutes = Math.round(durationSeconds / 60);
+          const drivingMinutes = Math.round(durationSeconds / 60);
+          
+          // Add 5 minutes per stop for drop-off time
+          const stopCount = optimizedAddresses.length;
+          const stopTimeMinutes = stopCount * 5;
+          const totalMinutes = drivingMinutes + stopTimeMinutes;
+
+          // Get the encoded polyline for map display
+          const encodedPolyline = route.polyline?.encodedPolyline || null;
 
           return NextResponse.json({
             success: true,
@@ -121,9 +132,13 @@ export async function POST(req: NextRequest) {
             stopCount: allStops.length,
             originalOrder: addresses,
             optimizedOrder: optimizedAddresses,
+            encodedPolyline,
             metrics: {
               totalDistanceMiles,
-              totalDurationMinutes: durationMinutes,
+              totalDurationMinutes: totalMinutes,
+              drivingMinutes,
+              stopTimeMinutes,
+              stopCount,
               legs: route.legs?.map(leg => ({
                 distanceMiles: ((leg.distanceMeters || 0) / 1609.344).toFixed(1),
                 durationMinutes: Math.round((parseInt(leg.duration?.replace('s', '') || '0')) / 60),

@@ -17,6 +17,14 @@ interface RouteMapPreviewProps {
   isOpen: boolean;
   onClose: () => void;
   onStartNavigation: () => void;
+  encodedPolyline?: string | null;
+  metrics?: {
+    totalDurationMinutes?: number;
+    drivingMinutes?: number;
+    stopTimeMinutes?: number;
+    stopCount?: number;
+    totalDistanceMiles?: string;
+  } | null;
 }
 
 export default function RouteMapPreview({
@@ -27,6 +35,8 @@ export default function RouteMapPreview({
   isOpen,
   onClose,
   onStartNavigation,
+  encodedPolyline,
+  metrics,
 }: RouteMapPreviewProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [mapError, setMapError] = useState(false);
@@ -78,10 +88,17 @@ export default function RouteMapPreview({
 
     const markersParam = markers.map(m => `markers=${m}`).join('&');
     
-    // Path connecting all points - use geocoding addresses for accurate path
-    const allPoints = [startGeoAddr, ...stops, endGeoAddr];
-    const pathPoints = allPoints.map(p => encodeURIComponent(p)).join('|');
-    const pathParam = `path=color:0x1e3a5f|weight:4|${pathPoints}`;
+    // Path connecting all points - use encoded polyline if available for actual driving route
+    let pathParam: string;
+    if (encodedPolyline) {
+      // Use the encoded polyline from Routes API for actual driving route
+      pathParam = `path=color:0x1e3a5f|weight:4|enc:${encodedPolyline}`;
+    } else {
+      // Fallback to straight lines between geocoded addresses
+      const allPoints = [startGeoAddr, ...stops, endGeoAddr];
+      const pathPoints = allPoints.map(p => encodeURIComponent(p)).join('|');
+      pathParam = `path=color:0x1e3a5f|weight:4|${pathPoints}`;
+    }
 
     return `https://maps.googleapis.com/maps/api/staticmap?size=640x400&scale=2&maptype=roadmap&${markersParam}&${pathParam}&key=${apiKey}`;
   };
@@ -111,6 +128,30 @@ export default function RouteMapPreview({
               ✕
             </button>
           </div>
+          
+          {/* Time and distance estimate */}
+          {metrics && metrics.totalDurationMinutes && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <span>⏱️</span>
+                  <span className="font-semibold">Est. {metrics.totalDurationMinutes} min</span>
+                  <span className="text-white/70">
+                    ({metrics.drivingMinutes} min driving + {metrics.stopTimeMinutes} min for {metrics.stopCount} {metrics.stopCount === 1 ? 'stop' : 'stops'})
+                  </span>
+                </div>
+                {metrics.totalDistanceMiles && (
+                  <div className="flex items-center gap-1.5">
+                    <span>📍</span>
+                    <span>{metrics.totalDistanceMiles} mi</span>
+                  </div>
+                )}
+              </div>
+              <div className="text-xs text-white/60">
+                🏁 Leave now to finish by {new Date(Date.now() + metrics.totalDurationMinutes * 60000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Map */}
