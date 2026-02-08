@@ -184,8 +184,18 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
           <button
             onClick={async () => {
               if (confirm('Are you sure you want to delete this box drop?')) {
-                await fetch(`/api/drops/${id}`, { method: 'DELETE' });
-                router.push('/drops');
+                try {
+                  const res = await fetch(`/api/drops/${id}`, { method: 'DELETE' });
+                  if (res.ok) {
+                    router.push('/drops');
+                  } else {
+                    const data = await res.json();
+                    alert(`Failed to delete: ${data.error || 'Unknown error'}`);
+                  }
+                } catch (err) {
+                  console.error('Delete error:', err);
+                  alert('Failed to delete drop. Please try again.');
+                }
               }
             }}
             className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"

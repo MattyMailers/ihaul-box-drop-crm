@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Shell from '@/components/Shell';
 import StatusBadge from '@/components/StatusBadge';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 import Link from 'next/link';
 
 type Drop = {
@@ -97,12 +98,9 @@ export default function RoutesPage() {
 
   const openGoogleMapsRoute = () => {
     if (drops.length === 0) return;
-    const allStops = [
-      encodeURIComponent(startLocation),
-      ...drops.map(d => encodeURIComponent(d.homeowner_address)),
-      encodeURIComponent(endLocation),
-    ];
-    const url = `https://www.google.com/maps/dir/${allStops.join('/')}/`;
+    // Use the ?api=1 format with waypoints - shows all stops expanded instead of collapsed
+    const waypoints = drops.map(d => encodeURIComponent(d.homeowner_address)).join('|');
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startLocation)}&destination=${encodeURIComponent(endLocation)}&waypoints=${waypoints}`;
     window.open(url, '_blank');
   };
 
@@ -120,7 +118,10 @@ export default function RoutesPage() {
         }),
       });
       const data = await res.json();
-      if (data.mapsUrl) {
+      // Use mapsApiUrl which shows all stops expanded (not collapsed as "X stops")
+      if (data.mapsApiUrl) {
+        window.open(data.mapsApiUrl, '_blank');
+      } else if (data.mapsUrl) {
         window.open(data.mapsUrl, '_blank');
       }
     } catch (err) {
@@ -182,20 +183,18 @@ export default function RoutesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Start Location</label>
-              <input
-                type="text"
+              <AddressAutocomplete
                 value={startLocation}
-                onChange={e => setStartLocation(e.target.value)}
+                onChange={setStartLocation}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
                 placeholder="Starting address"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">End Location</label>
-              <input
-                type="text"
+              <AddressAutocomplete
                 value={endLocation}
-                onChange={e => setEndLocation(e.target.value)}
+                onChange={setEndLocation}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
                 placeholder="Ending address"
               />

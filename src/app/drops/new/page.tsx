@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Shell from '@/components/Shell';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 type Realtor = {
   id: number;
@@ -147,7 +148,13 @@ export default function NewDropPage() {
             <div className="space-y-3">
               <div>
                 <label className={labelClass}>Address *</label>
-                <input value={form.homeowner_address} onChange={(e) => setForm({ ...form, homeowner_address: e.target.value })} className={inputClass} required placeholder="123 Main St, Colorado Springs CO" />
+                <AddressAutocomplete
+                  value={form.homeowner_address}
+                  onChange={(value) => setForm({ ...form, homeowner_address: value })}
+                  className={inputClass}
+                  required
+                  placeholder="123 Main St, Colorado Springs CO"
+                />
               </div>
               <div>
                 <label className={labelClass}>Homeowner Name</label>

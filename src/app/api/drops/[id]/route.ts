@@ -71,7 +71,29 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  await db.execute({ sql: 'DELETE FROM box_drops WHERE id = ?', args: [parseInt(id)] });
-  return NextResponse.json({ success: true });
+  try {
+    const { id } = await params;
+    const dropId = parseInt(id);
+    
+    if (isNaN(dropId)) {
+      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+    }
+
+    // Check if drop exists first
+    const existing = await db.execute({
+      sql: 'SELECT id FROM box_drops WHERE id = ?',
+      args: [dropId],
+    });
+
+    if (existing.rows.length === 0) {
+      return NextResponse.json({ error: 'Drop not found' }, { status: 404 });
+    }
+
+    await db.execute({ sql: 'DELETE FROM box_drops WHERE id = ?', args: [dropId] });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('Delete error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to delete';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
