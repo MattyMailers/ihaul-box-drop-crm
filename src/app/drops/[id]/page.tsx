@@ -4,6 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Shell from '@/components/Shell';
 import StatusBadge from '@/components/StatusBadge';
+import ConfirmModal from '@/components/ConfirmModal';
 import type { BoxDrop } from '@/lib/db';
 
 const statusFlow = ['requested', 'kit_prepped', 'out_for_delivery', 'delivered', 'followed_up', 'converted'];
@@ -13,6 +14,8 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   const [drop, setDrop] = useState<BoxDrop | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchDrop = () => {
     fetch(`/api/drops/${id}`).then(r => r.json()).then(setDrop);
@@ -36,6 +39,27 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
     const currentIdx = statusFlow.indexOf(drop.status);
     if (currentIdx < statusFlow.length - 1) {
       updateField('status', statusFlow[currentIdx + 1]);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/drops/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        // Use replace to prevent back navigation to deleted item
+        router.replace('/drops');
+      } else {
+        const data = await res.json();
+        alert(`Failed to delete: ${data.error || 'Unknown error'}`);
+        setDeleting(false);
+        setShowDeleteModal(false);
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete drop. Please try again.');
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -182,28 +206,26 @@ export default function DropDetailPage({ params }: { params: Promise<{ id: strin
           <h2 className="text-sm font-bold text-red-500 uppercase mb-2">⚠️ Danger Zone</h2>
           <p className="text-sm text-red-600 mb-4">Permanently delete this box drop. This cannot be undone.</p>
           <button
-            onClick={async () => {
-              if (confirm('Are you sure you want to delete this box drop?')) {
-                try {
-                  const res = await fetch(`/api/drops/${id}`, { method: 'DELETE' });
-                  if (res.ok) {
-                    router.push('/drops');
-                  } else {
-                    const data = await res.json();
-                    alert(`Failed to delete: ${data.error || 'Unknown error'}`);
-                  }
-                } catch (err) {
-                  console.error('Delete error:', err);
-                  alert('Failed to delete drop. Please try again.');
-                }
-              }
-            }}
-            className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
+            onClick={() => setShowDeleteModal(true)}
+            className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors touch-manipulation select-none"
           >
             🗑️ Delete Box Drop
           </button>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Delete Box Drop?"
+        message="This will permanently delete this box drop. This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteModal(false)}
+        loading={deleting}
+      />
     </Shell>
   );
 }

@@ -98,9 +98,13 @@ export default function RoutesPage() {
 
   const openGoogleMapsRoute = () => {
     if (drops.length === 0) return;
-    // Use the ?api=1 format with waypoints - shows all stops expanded instead of collapsed
-    const waypoints = drops.map(d => encodeURIComponent(d.homeowner_address)).join('|');
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startLocation)}&destination=${encodeURIComponent(endLocation)}&waypoints=${waypoints}`;
+    
+    // Build route URL - use path format which works better on mobile
+    const allStops = [startLocation, ...drops.map(d => d.homeowner_address), endLocation];
+    const encodedStops = allStops.map(a => encodeURIComponent(a.trim()));
+    
+    // Path-based format works better across devices including mobile
+    const url = `https://www.google.com/maps/dir/${encodedStops.join('/')}`;
     window.open(url, '_blank');
   };
 
@@ -118,12 +122,16 @@ export default function RoutesPage() {
         }),
       });
       const data = await res.json();
-      // Use mapsApiUrl which shows all stops expanded (not collapsed as "X stops")
-      if (data.mapsApiUrl) {
-        window.open(data.mapsApiUrl, '_blank');
-      } else if (data.mapsUrl) {
+      
+      // Prefer the path-based URL for mobile compatibility
+      if (data.mapsUrl) {
         window.open(data.mapsUrl, '_blank');
+      } else if (data.mapsApiUrl) {
+        window.open(data.mapsApiUrl, '_blank');
       }
+      
+      // If optimization returned reordered addresses, we could update local state here
+      // For now, just open the URL
     } catch (err) {
       console.error('Route optimization failed:', err);
     } finally {
