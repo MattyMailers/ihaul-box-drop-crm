@@ -7,9 +7,10 @@ export function middleware(request: NextRequest) {
   const isWebhookHealth = request.nextUrl.pathname === '/api/webhook/health';
   const isAutoApi = request.nextUrl.pathname.startsWith('/api/drops/auto') ||
                     request.nextUrl.pathname.startsWith('/api/routes/optimize') ||
-                    request.nextUrl.pathname.startsWith('/api/automation');
+                    request.nextUrl.pathname.startsWith('/api/automation') ||
+                    request.nextUrl.pathname.startsWith('/api/config');
 
-  // Allow public API endpoints (webhook health, auto-drop creation, automation logs)
+  // Allow public API endpoints (webhook health, auto-drop creation, automation logs, config)
   if (isApiAuth || isWebhookHealth || isAutoApi) return NextResponse.next();
 
   if (!authCookie || authCookie.value !== 'authenticated') {
