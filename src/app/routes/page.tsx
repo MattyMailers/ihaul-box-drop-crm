@@ -324,6 +324,7 @@ export default function RoutesPage() {
   const [currentStopIndex, setCurrentStopIndex] = useState(-1);
   const [showMapPreview, setShowMapPreview] = useState(false);
   const [showNavModal, setShowNavModal] = useState(false);
+  const [showOptimizationModal, setShowOptimizationModal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const fetchDrops = useCallback(() => {
@@ -469,9 +470,9 @@ export default function RoutesPage() {
           }
         }
         
-        // Show success modal
-        console.log('[optimizeRoute] Setting result with polyline:', data.encodedPolyline ? `${data.encodedPolyline.substring(0, 50)}...` : 'null/undefined');
+        // Show success modal (keep optimizationResult for map preview polyline)
         setOptimizationResult(data);
+        setShowOptimizationModal(true);
       }
     } catch (err) {
       console.error('Route optimization failed:', err);
@@ -514,10 +515,10 @@ export default function RoutesPage() {
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
         {/* Success Modal */}
-        {optimizationResult && (
+        {optimizationResult && showOptimizationModal && (
           <OptimizationSuccessModal
             result={optimizationResult}
-            onClose={() => setOptimizationResult(null)}
+            onClose={() => setShowOptimizationModal(false)}
             onStartNavigation={startNavigation}
           />
         )}

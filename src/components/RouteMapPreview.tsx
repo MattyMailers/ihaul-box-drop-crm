@@ -67,9 +67,6 @@ export default function RouteMapPreview({
   // Build the Google Maps Static API URL with markers
   const buildStaticMapUrl = () => {
     if (!apiKey) return null;
-    
-    // Debug: log polyline status
-    console.log('[RouteMapPreview] encodedPolyline:', encodedPolyline ? `${encodedPolyline.substring(0, 50)}...` : 'null/undefined');
 
     const markers: string[] = [];
     
