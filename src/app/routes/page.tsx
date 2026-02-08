@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Shell from '@/components/Shell';
 import StatusBadge from '@/components/StatusBadge';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+import RouteMapPreview from '@/components/RouteMapPreview';
 import Link from 'next/link';
 
 type Drop = {
@@ -66,17 +67,171 @@ function isIOS(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
+// Toast notification component
+function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-50 animate-slide-in-bottom">
+      <div className="bg-green-600 text-white px-4 py-3 rounded-2xl shadow-lg flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">✅</span>
+          <span className="font-medium">{message}</span>
+        </div>
+        <button onClick={onClose} className="text-white/80 hover:text-white ml-2">✕</button>
+      </div>
+      <style jsx>{`
+        @keyframes slide-in-bottom {
+          from { transform: translateY(100px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-in-bottom { animation: slide-in-bottom 0.3s ease-out; }
+      `}</style>
+    </div>
+  );
+}
+
+// Navigation modal for current stop
+function NavigationModal({ 
+  drop,
+  stopNumber,
+  totalStops,
+  onNavigateGoogle,
+  onNavigateApple,
+  onNextStop,
+  onMarkDelivered,
+  onClose,
+  isLastStop,
+}: { 
+  drop: Drop;
+  stopNumber: number;
+  totalStops: number;
+  onNavigateGoogle: () => void;
+  onNavigateApple: () => void;
+  onNextStop: () => void;
+  onMarkDelivered: () => void;
+  onClose: () => void;
+  isLastStop: boolean;
+}) {
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header with progress */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium opacity-80">Stop {stopNumber} of {totalStops}</span>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors text-sm"
+            >
+              ✕
+            </button>
+          </div>
+          {/* Progress bar */}
+          <div className="w-full bg-white/30 rounded-full h-2">
+            <div 
+              className="bg-white rounded-full h-2 transition-all duration-300"
+              style={{ width: `${(stopNumber / totalStops) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Stop details */}
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900 mb-1">{drop.homeowner_address}</h3>
+          <p className="text-sm text-gray-500">
+            {drop.realtor_first_name} {drop.realtor_last_name} • {drop.realtor_company}
+          </p>
+          {drop.homeowner_name && (
+            <p className="text-sm text-gray-500 mt-1">Homeowner: {drop.homeowner_name}</p>
+          )}
+          {drop.homeowner_phone && (
+            <a href={`tel:${drop.homeowner_phone}`} className="text-sm text-blue-600 mt-1 block">
+              📱 {drop.homeowner_phone}
+            </a>
+          )}
+          {drop.notes && (
+            <p className="text-sm text-gray-400 mt-2 italic bg-gray-50 p-2 rounded-lg">{drop.notes}</p>
+          )}
+        </div>
+
+        {/* Navigation buttons */}
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onNavigateGoogle}
+              className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              <span className="text-lg">🗺️</span>
+              <span>Google Maps</span>
+            </button>
+            <button
+              onClick={onNavigateApple}
+              className="bg-gray-800 hover:bg-gray-900 active:bg-black text-white font-semibold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              <span className="text-lg">🍎</span>
+              <span>Apple Maps</span>
+            </button>
+          </div>
+
+          <button
+            onClick={onMarkDelivered}
+            className="w-full bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            ✅ Mark Delivered
+          </button>
+
+          {!isLastStop && (
+            <button
+              onClick={onNextStop}
+              className="w-full bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              ➡️ Skip to Next Stop
+            </button>
+          )}
+
+          {isLastStop && (
+            <button
+              onClick={onClose}
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition-colors"
+            >
+              🏁 Finish Route
+            </button>
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes slide-up {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slide-up 0.3s ease-out; }
+      `}</style>
+    </div>
+  );
+}
+
 // Success overlay component
 function OptimizationSuccessModal({ 
   result, 
   onClose, 
-  onOpenMaps 
+  onStartNavigation,
 }: { 
   result: OptimizationResult; 
   onClose: () => void;
-  onOpenMaps: (url: string, useApp: boolean) => void;
+  onStartNavigation: () => void;
 }) {
-  const { metrics, optimized, mapsUrl } = result;
+  const { metrics, optimized } = result;
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -108,21 +263,11 @@ function OptimizationSuccessModal({
         </div>
         
         <div className="space-y-3">
-          {/* Primary: Open in Google Maps App (iOS) or browser */}
           <button
-            onClick={() => onOpenMaps(mapsUrl, true)}
+            onClick={onStartNavigation}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
-            🗺️ Open in Google Maps
-            {isIOS() && <span className="text-xs opacity-75">(App)</span>}
-          </button>
-          
-          {/* Secondary: Open in browser (good for desktop or if app not installed) */}
-          <button
-            onClick={() => onOpenMaps(mapsUrl, false)}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            🌐 Open in Browser
+            🚀 Start Navigation
           </button>
           
           <button
@@ -136,18 +281,10 @@ function OptimizationSuccessModal({
       
       <style jsx>{`
         @keyframes scale-in {
-          from {
-            transform: scale(0.9);
-            opacity: 0;
-          }
-          to {
-            transform: scale(1);
-            opacity: 1;
-          }
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
-        .animate-scale-in {
-          animation: scale-in 0.2s ease-out;
-        }
+        .animate-scale-in { animation: scale-in 0.2s ease-out; }
       `}</style>
     </div>
   );
@@ -162,10 +299,17 @@ export default function RoutesPage() {
   const [optimizing, setOptimizing] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [isOptimizedOrder, setIsOptimizedOrder] = useState(false);
+  
+  // Sequential navigation state
+  const [currentStopIndex, setCurrentStopIndex] = useState(-1);
+  const [showMapPreview, setShowMapPreview] = useState(false);
+  const [showNavModal, setShowNavModal] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const fetchDrops = useCallback(() => {
     setLoading(true);
     setIsOptimizedOrder(false);
+    setCurrentStopIndex(-1);
     const start = formatDate(weekStart);
     const end = formatDate(addDays(weekStart, 6));
     // Fetch pending drops for the selected week
@@ -193,6 +337,7 @@ export default function RoutesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'delivered' }),
     });
+    setToast('Drop marked as delivered!');
     fetchDrops();
   };
 
@@ -205,39 +350,74 @@ export default function RoutesPage() {
     fetchDrops();
   };
 
-  // Open Google Maps with appropriate URL scheme for the platform
-  const openGoogleMaps = (mapsUrl: string, preferApp: boolean) => {
-    if (preferApp && isIOS()) {
-      // Use comgooglemapsurl:// scheme to open in Google Maps iOS app
-      // This converts an HTTPS Google Maps URL to open in the app
-      const appUrl = `comgooglemapsurl://${mapsUrl.replace('https://', '')}`;
-      
-      // Try to open the app, fall back to browser
-      const start = Date.now();
+  // Build Google Maps URL for a single address
+  const getGoogleMapsUrl = (address: string): string => {
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+  };
+
+  // Build Apple Maps URL for a single address
+  const getAppleMapsUrl = (address: string): string => {
+    return `maps://maps.apple.com/?daddr=${encodeURIComponent(address)}&dirflg=d`;
+  };
+
+  // Navigate to address with Google Maps
+  const navigateWithGoogle = (address: string) => {
+    const url = getGoogleMapsUrl(address);
+    if (isIOS()) {
+      // Try Google Maps app first, fall back to browser
+      const appUrl = `comgooglemaps://?daddr=${encodeURIComponent(address)}&directionsmode=driving`;
       window.location.href = appUrl;
-      
-      // If the app doesn't open within 1.5s, fall back to browser
       setTimeout(() => {
-        if (Date.now() - start < 2000) {
-          window.open(mapsUrl, '_blank');
-        }
-      }, 1500);
+        window.open(url, '_blank');
+      }, 1000);
     } else {
-      // Open in browser (works everywhere)
-      window.open(mapsUrl, '_blank');
+      window.open(url, '_blank');
     }
   };
 
-  const openGoogleMapsRoute = () => {
+  // Navigate to address with Apple Maps
+  const navigateWithApple = (address: string) => {
+    const url = getAppleMapsUrl(address);
+    window.location.href = url;
+  };
+
+  // Start navigation - show first stop
+  const startNavigation = () => {
     if (drops.length === 0) return;
-    
-    // Build route URL - use path format which works better on mobile
-    const allStops = [startLocation, ...drops.map(d => d.homeowner_address), endLocation];
-    const encodedStops = allStops.map(a => encodeURIComponent(a.trim()));
-    
-    // Path-based format works better across devices including mobile
-    const url = `https://www.google.com/maps/dir/${encodedStops.join('/')}`;
-    openGoogleMaps(url, true);
+    setShowMapPreview(false);
+    setOptimizationResult(null);
+    setCurrentStopIndex(0);
+    setShowNavModal(true);
+  };
+
+  // Go to next stop
+  const nextStop = () => {
+    if (currentStopIndex < drops.length - 1) {
+      setCurrentStopIndex(currentStopIndex + 1);
+    } else {
+      setShowNavModal(false);
+      setCurrentStopIndex(-1);
+      setToast('🏁 Route completed!');
+    }
+  };
+
+  // Handle delivered from nav modal
+  const handleNavModalDelivered = async () => {
+    const drop = drops[currentStopIndex];
+    await markDelivered(drop.id);
+    // Auto-advance to next stop
+    if (currentStopIndex < drops.length - 1) {
+      setCurrentStopIndex(currentStopIndex + 1);
+    } else {
+      setShowNavModal(false);
+      setCurrentStopIndex(-1);
+      setToast('🏁 Route completed! All stops delivered.');
+    }
+  };
+
+  // Show map preview
+  const openMapPreview = () => {
+    setShowMapPreview(true);
   };
 
   const optimizeRoute = async () => {
@@ -304,15 +484,49 @@ export default function RoutesPage() {
     URL.revokeObjectURL(url);
   };
 
+  const currentDrop = currentStopIndex >= 0 ? drops[currentStopIndex] : null;
+
   return (
     <Shell>
       <div className="p-4 md:p-8">
+        {/* Toast notification */}
+        {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+
         {/* Success Modal */}
         {optimizationResult && (
           <OptimizationSuccessModal
             result={optimizationResult}
             onClose={() => setOptimizationResult(null)}
-            onOpenMaps={openGoogleMaps}
+            onStartNavigation={startNavigation}
+          />
+        )}
+
+        {/* Map Preview Modal */}
+        <RouteMapPreview
+          stops={drops.map(d => d.homeowner_address)}
+          startLocation={startLocation}
+          endLocation={endLocation}
+          currentStopIndex={currentStopIndex}
+          isOpen={showMapPreview}
+          onClose={() => setShowMapPreview(false)}
+          onStartNavigation={startNavigation}
+        />
+
+        {/* Navigation Modal */}
+        {showNavModal && currentDrop && (
+          <NavigationModal
+            drop={currentDrop}
+            stopNumber={currentStopIndex + 1}
+            totalStops={drops.length}
+            onNavigateGoogle={() => navigateWithGoogle(currentDrop.homeowner_address)}
+            onNavigateApple={() => navigateWithApple(currentDrop.homeowner_address)}
+            onNextStop={nextStop}
+            onMarkDelivered={handleNavModalDelivered}
+            onClose={() => {
+              setShowNavModal(false);
+              setCurrentStopIndex(-1);
+            }}
+            isLastStop={currentStopIndex === drops.length - 1}
           />
         )}
 
@@ -361,12 +575,13 @@ export default function RoutesPage() {
 
         {/* Action buttons */}
         <div className="flex flex-wrap gap-3 mb-6 no-print">
+          {/* Primary mobile action - Map Preview */}
           <button
-            onClick={openGoogleMapsRoute}
+            onClick={openMapPreview}
             disabled={drops.length === 0}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2"
           >
-            🗺️ Open Route in Google Maps
+            🗺️ View Route Map
           </button>
           <button
             onClick={optimizeRoute}
@@ -398,6 +613,11 @@ export default function RoutesPage() {
               ✅ Optimized Order
             </span>
           )}
+          {currentStopIndex >= 0 && (
+            <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+              In Progress: Stop {currentStopIndex + 1} of {drops.length}
+            </span>
+          )}
         </div>
 
         {loading ? (
@@ -410,52 +630,111 @@ export default function RoutesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {drops.map((drop, i) => (
-              <div key={drop.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
-                <div className="flex items-start gap-4">
-                  <div className={`${isOptimizedOrder ? 'bg-green-500' : 'bg-orange-500'} text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0 transition-colors`}>
-                    {i + 1}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <Link href={`/drops/${drop.id}`} className="font-bold text-gray-900 text-lg hover:text-orange-600 transition-colors">
-                          {drop.homeowner_address}
-                        </Link>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {drop.realtor_first_name} {drop.realtor_last_name} • {drop.realtor_company}
-                        </p>
-                        {drop.realtor_phone && <p className="text-sm text-gray-500">📱 Realtor: {drop.realtor_phone}</p>}
-                        {drop.homeowner_name && <p className="text-sm text-gray-500">Homeowner: {drop.homeowner_name}</p>}
-                        {drop.homeowner_phone && <p className="text-sm text-gray-500">📱 {drop.homeowner_phone}</p>}
-                        {drop.notes && <p className="text-sm text-gray-400 mt-1 italic">{drop.notes}</p>}
-                      </div>
-                      <div className="mt-3 sm:mt-0 flex items-center gap-2">
-                        <StatusBadge status={drop.status} />
-                      </div>
+            {drops.map((drop, i) => {
+              const isCurrentStop = currentStopIndex === i;
+              const isPastStop = currentStopIndex > i && currentStopIndex >= 0;
+              
+              return (
+                <div 
+                  key={drop.id} 
+                  className={`bg-white rounded-2xl shadow-sm border transition-all ${
+                    isCurrentStop 
+                      ? 'border-blue-400 ring-2 ring-blue-100' 
+                      : isPastStop 
+                        ? 'border-gray-200 opacity-60' 
+                        : 'border-gray-100'
+                  } p-4 md:p-6`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`${
+                      isCurrentStop 
+                        ? 'bg-blue-500 animate-pulse' 
+                        : isOptimizedOrder 
+                          ? 'bg-green-500' 
+                          : 'bg-orange-500'
+                    } text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0 transition-colors`}>
+                      {i + 1}
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-4 no-print">
-                      {(drop.status === 'requested' || drop.status === 'kit_prepped') && (
-                        <button onClick={() => markOutForDelivery(drop.id)} className="bg-purple-500 hover:bg-purple-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
-                          🚚 Out for Delivery
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Link href={`/drops/${drop.id}`} className="font-bold text-gray-900 text-lg hover:text-orange-600 transition-colors">
+                              {drop.homeowner_address}
+                            </Link>
+                            {isCurrentStop && (
+                              <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {drop.realtor_first_name} {drop.realtor_last_name} • {drop.realtor_company}
+                          </p>
+                          {drop.realtor_phone && <p className="text-sm text-gray-500">📱 Realtor: {drop.realtor_phone}</p>}
+                          {drop.homeowner_name && <p className="text-sm text-gray-500">Homeowner: {drop.homeowner_name}</p>}
+                          {drop.homeowner_phone && <p className="text-sm text-gray-500">📱 {drop.homeowner_phone}</p>}
+                          {drop.notes && <p className="text-sm text-gray-400 mt-1 italic">{drop.notes}</p>}
+                        </div>
+                        <div className="mt-3 sm:mt-0 flex items-center gap-2">
+                          <StatusBadge status={drop.status} />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-4 no-print">
+                        {(drop.status === 'requested' || drop.status === 'kit_prepped') && (
+                          <button onClick={() => markOutForDelivery(drop.id)} className="bg-purple-500 hover:bg-purple-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
+                            🚚 Out for Delivery
+                          </button>
+                        )}
+                        {(drop.status === 'out_for_delivery' || drop.status === 'requested' || drop.status === 'kit_prepped') && (
+                          <button onClick={() => markDelivered(drop.id)} className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
+                            ✅ Delivered
+                          </button>
+                        )}
+                        {/* Google Maps button */}
+                        <button
+                          onClick={() => navigateWithGoogle(drop.homeowner_address)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-1"
+                        >
+                          🗺️ Google
                         </button>
-                      )}
-                      {(drop.status === 'out_for_delivery' || drop.status === 'requested' || drop.status === 'kit_prepped') && (
-                        <button onClick={() => markDelivered(drop.id)} className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
-                          ✅ Mark Delivered
+                        {/* Apple Maps button */}
+                        <button
+                          onClick={() => navigateWithApple(drop.homeowner_address)}
+                          className="bg-gray-700 hover:bg-gray-800 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-1"
+                        >
+                          🍎 Apple
                         </button>
-                      )}
-                      <button
-                        onClick={() => openGoogleMaps(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(drop.homeowner_address)}`, true)}
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
-                      >
-                        📍 Navigate
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        )}
+
+        {/* Floating "Continue Route" button when in progress */}
+        {currentStopIndex >= 0 && !showNavModal && (
+          <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-40 no-print">
+            <button
+              onClick={() => setShowNavModal(true)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-colors flex items-center justify-center gap-2"
+            >
+              🧭 Continue Route (Stop {currentStopIndex + 1}/{drops.length})
+            </button>
+          </div>
+        )}
+
+        {/* Start Route button when not in progress */}
+        {drops.length > 0 && currentStopIndex < 0 && (
+          <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-40 no-print">
+            <button
+              onClick={startNavigation}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-colors flex items-center justify-center gap-2"
+            >
+              🚀 Start Route ({drops.length} stops)
+            </button>
           </div>
         )}
       </div>
