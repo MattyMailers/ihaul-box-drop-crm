@@ -223,9 +223,10 @@ export default function SuppliesPage() {
         )}
 
         {/* Print header (hidden on screen) */}
-        <div className="hidden print-only">
-          <h2 className="text-xl font-bold">iHaul iMove - Supply Checklist</h2>
-          <p>{formatWeekLabel(weekStart)} • {dropCount} kits needed • Est. ${totalCost}</p>
+        <div className="hidden print:block print-header mb-4">
+          <h1 className="text-2xl font-bold">📋 iHaul iMove - Supply Checklist</h1>
+          <p className="text-gray-600">{formatWeekLabel(weekStart)} • {dropCount} kits needed • Est. ${totalCost}</p>
+          <p className="text-xs text-gray-400 mt-1">Printed: {new Date().toLocaleString()}</p>
         </div>
       </div>
     </Shell>

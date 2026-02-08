@@ -52,6 +52,10 @@ body {
   }
   body {
     background: white !important;
+    font-size: 11pt;
+    color: black;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   main {
     margin-left: 0 !important;
@@ -59,5 +63,120 @@ body {
   }
   .safe-area-bottom {
     padding-bottom: 0 !important;
+  }
+  
+  /* Hide Shell navigation */
+  nav, aside, [class*="sidebar"], [class*="nav"], .fixed {
+    display: none !important;
+  }
+  
+  /* Reset container spacing */
+  .p-4, .p-8, .md\:p-8 {
+    padding: 0.5rem !important;
+  }
+  
+  /* Route sheet print styles */
+  .print-header {
+    display: block !important;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #1e3a5f;
+  }
+  
+  .print-header h1 {
+    font-size: 18pt;
+    font-weight: bold;
+    color: #1e3a5f;
+    margin: 0;
+  }
+  
+  .print-header p {
+    font-size: 10pt;
+    color: #666;
+    margin: 0.25rem 0 0 0;
+  }
+  
+  /* Stop cards for printing */
+  .space-y-4 > div {
+    page-break-inside: avoid;
+    border: 1px solid #ccc !important;
+    margin-bottom: 0.5rem !important;
+    padding: 0.5rem !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+  }
+  
+  /* Print checkbox styling */
+  .print-checkbox {
+    display: inline-block !important;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #333;
+    border-radius: 2px;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+  
+  /* Stop number badge */
+  .space-y-4 > div .rounded-full {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 10pt !important;
+    background-color: #1e3a5f !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Compact text for printing */
+  .text-lg {
+    font-size: 11pt !important;
+  }
+  
+  .text-sm, .text-xs {
+    font-size: 9pt !important;
+  }
+  
+  /* Hide status badges in print - keep it clean */
+  [class*="StatusBadge"] {
+    font-size: 8pt !important;
+  }
+  
+  /* Supplies page print styles */
+  .divide-y > div {
+    padding: 0.4rem 0.5rem !important;
+    page-break-inside: avoid;
+  }
+  
+  /* Print checkbox for supplies */
+  .divide-y > div .rounded-lg {
+    width: 16px !important;
+    height: 16px !important;
+    border: 2px solid #333 !important;
+    background: white !important;
+  }
+  
+  /* Stats cards - compact for print */
+  .grid {
+    gap: 0.5rem !important;
+  }
+  
+  .grid > div {
+    padding: 0.5rem !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+  
+  /* Page margins */
+  @page {
+    margin: 0.5in;
+    size: letter;
+  }
+  
+  /* Force backgrounds to print */
+  .bg-green-50, .bg-gray-50, .bg-orange-50 {
+    background-color: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

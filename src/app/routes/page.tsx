@@ -554,8 +554,15 @@ export default function RoutesPage() {
           />
         )}
 
+        {/* Print Header - only visible when printing */}
+        <div className="hidden print:block print-header mb-4">
+          <h1 className="text-2xl font-bold">🚚 iHaul iMove - Route Sheet</h1>
+          <p className="text-gray-600">Driver: Stew • Week of {formatWeekLabel(weekStart)} • {drops.length} stops</p>
+          <p className="text-xs text-gray-400 mt-1">Printed: {new Date().toLocaleString()}</p>
+        </div>
+
         {/* Header with week selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3 no-print">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">🚚 Weekly Route</h1>
             <p className="text-gray-500 mt-1">Driver: Stew • {formatWeekLabel(weekStart)}</p>
@@ -669,44 +676,46 @@ export default function RoutesPage() {
               return (
                 <div 
                   key={drop.id} 
-                  className={`bg-white rounded-2xl shadow-sm border transition-all ${
+                  className={`bg-white rounded-2xl shadow-sm border transition-all print:rounded-lg ${
                     isCurrentStop 
                       ? 'border-blue-400 ring-2 ring-blue-100' 
                       : isPastStop 
                         ? 'border-gray-200 opacity-60' 
                         : 'border-gray-100'
-                  } p-4 md:p-6`}
+                  } p-4 md:p-6 print:p-3`}
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-4 print:gap-3">
+                    {/* Print-only checkbox */}
+                    <div className="hidden print:block print-checkbox shrink-0 mt-1" />
                     <div className={`${
                       isCurrentStop 
                         ? 'bg-blue-500 animate-pulse' 
                         : isOptimizedOrder 
                           ? 'bg-green-500' 
                           : 'bg-orange-500'
-                    } text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0 transition-colors`}>
+                    } text-white w-10 h-10 print:w-7 print:h-7 rounded-full flex items-center justify-center font-bold text-lg print:text-sm shrink-0 transition-colors`}>
                       {i + 1}
                     </div>
                     <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between print:block">
                         <div>
-                          <div className="flex items-center gap-2">
-                            <Link href={`/drops/${drop.id}`} className="font-bold text-gray-900 text-lg hover:text-orange-600 transition-colors">
+                          <div className="flex items-center gap-2 print:block">
+                            <Link href={`/drops/${drop.id}`} className="font-bold text-gray-900 text-lg print:text-base hover:text-orange-600 transition-colors print:no-underline">
                               {drop.homeowner_address}
                             </Link>
                             {isCurrentStop && (
-                              <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
+                              <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse no-print">
                                 Current
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {drop.realtor_first_name} {drop.realtor_last_name} • {drop.realtor_company}
+                          <p className="text-sm text-gray-500 mt-1 print:mt-0">
+                            <span className="print:font-medium">Realtor:</span> {drop.realtor_first_name} {drop.realtor_last_name} • {drop.realtor_company}
                           </p>
                           {drop.realtor_phone && <p className="text-sm text-gray-500">📱 Realtor: {drop.realtor_phone}</p>}
                           {drop.homeowner_name && <p className="text-sm text-gray-500">Homeowner: {drop.homeowner_name}</p>}
                           {drop.homeowner_phone && <p className="text-sm text-gray-500">📱 {drop.homeowner_phone}</p>}
-                          {drop.notes && <p className="text-sm text-gray-400 mt-1 italic">{drop.notes}</p>}
+                          {(drop.notes || drop.delivery_notes) && <p className="text-sm text-gray-400 mt-1 italic print:text-gray-600 print:not-italic print:font-medium">📝 {drop.notes || drop.delivery_notes}</p>}
                         </div>
                         <div className="mt-3 sm:mt-0 flex items-center gap-2">
                           <StatusBadge status={drop.status} />
