@@ -94,6 +94,10 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   );
 }
 
+// iHaul brand colors
+const IHUL_NAVY = '#1e3a5f';
+const IHUL_GOLD = '#C5A059';
+
 // Navigation modal for current stop
 function NavigationModal({ 
   drop,
@@ -125,8 +129,8 @@ function NavigationModal({
         className="bg-white w-full sm:max-w-md sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header with progress */}
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4">
+        {/* Header with progress - iHaul Navy */}
+        <div className="text-white p-4" style={{ backgroundColor: IHUL_NAVY }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium opacity-80">Stop {stopNumber} of {totalStops}</span>
             <button
@@ -139,8 +143,8 @@ function NavigationModal({
           {/* Progress bar */}
           <div className="w-full bg-white/30 rounded-full h-2">
             <div 
-              className="bg-white rounded-full h-2 transition-all duration-300"
-              style={{ width: `${(stopNumber / totalStops) * 100}%` }}
+              className="rounded-full h-2 transition-all duration-300"
+              style={{ width: `${(stopNumber / totalStops) * 100}%`, backgroundColor: IHUL_GOLD }}
             />
           </div>
         </div>
@@ -193,7 +197,8 @@ function NavigationModal({
           {!isLastStop && (
             <button
               onClick={onNextStop}
-              className="w-full bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="w-full text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 hover:opacity-90 active:opacity-80"
+              style={{ backgroundColor: IHUL_NAVY }}
             >
               ➡️ Skip to Next Stop
             </button>
@@ -242,14 +247,14 @@ function OptimizationSuccessModal({
             {optimized ? 'Route Optimized!' : 'Route Ready'}
           </h2>
           {metrics && (
-            <div className="mt-4 bg-green-50 rounded-2xl p-4">
+            <div className="mt-4 rounded-2xl p-4" style={{ backgroundColor: `${IHUL_NAVY}10` }}>
               <div className="flex justify-center gap-8">
                 <div>
-                  <p className="text-3xl font-bold text-green-600">{metrics.totalDistanceMiles}</p>
+                  <p className="text-3xl font-bold" style={{ color: IHUL_NAVY }}>{metrics.totalDistanceMiles}</p>
                   <p className="text-sm text-gray-500">miles</p>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-green-600">~{metrics.totalDurationMinutes}</p>
+                  <p className="text-3xl font-bold" style={{ color: IHUL_NAVY }}>~{metrics.totalDurationMinutes}</p>
                   <p className="text-sm text-gray-500">minutes</p>
                 </div>
               </div>
@@ -265,7 +270,8 @@ function OptimizationSuccessModal({
         <div className="space-y-3">
           <button
             onClick={onStartNavigation}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 hover:opacity-90"
+            style={{ backgroundColor: IHUL_NAVY }}
           >
             🚀 Start Navigation
           </button>
@@ -579,14 +585,16 @@ export default function RoutesPage() {
           <button
             onClick={openMapPreview}
             disabled={drops.length === 0}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2"
+            className="disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2 hover:opacity-90"
+            style={{ backgroundColor: drops.length === 0 ? undefined : IHUL_NAVY }}
           >
             🗺️ View Route Map
           </button>
           <button
             onClick={optimizeRoute}
             disabled={drops.length === 0 || optimizing}
-            className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2"
+            className="disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-xl transition-colors flex items-center gap-2 hover:opacity-90"
+            style={{ backgroundColor: drops.length === 0 || optimizing ? undefined : IHUL_NAVY }}
           >
             {optimizing ? '⏳ Optimizing...' : '🧭 Optimize Route'}
           </button>
@@ -609,12 +617,18 @@ export default function RoutesPage() {
         <div className="flex items-center gap-3 mb-4">
           <p className="text-sm text-gray-500">{drops.length} stops pending</p>
           {isOptimizedOrder && (
-            <span className="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">
+            <span 
+              className="text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1"
+              style={{ backgroundColor: `${IHUL_GOLD}30`, color: '#8B7355' }}
+            >
               ✅ Optimized Order
             </span>
           )}
           {currentStopIndex >= 0 && (
-            <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+            <span 
+              className="text-xs font-semibold px-3 py-1 rounded-full"
+              style={{ backgroundColor: `${IHUL_NAVY}15`, color: IHUL_NAVY }}
+            >
               In Progress: Stop {currentStopIndex + 1} of {drops.length}
             </span>
           )}
@@ -682,7 +696,11 @@ export default function RoutesPage() {
                       </div>
                       <div className="flex flex-wrap gap-2 mt-4 no-print">
                         {(drop.status === 'requested' || drop.status === 'kit_prepped') && (
-                          <button onClick={() => markOutForDelivery(drop.id)} className="bg-purple-500 hover:bg-purple-600 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
+                          <button 
+                            onClick={() => markOutForDelivery(drop.id)} 
+                            className="text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors hover:opacity-90"
+                            style={{ backgroundColor: IHUL_NAVY }}
+                          >
                             🚚 Out for Delivery
                           </button>
                         )}

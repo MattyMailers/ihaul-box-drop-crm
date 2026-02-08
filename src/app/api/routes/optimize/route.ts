@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// Full address for accurate geocoding when iHaul is specified
+const IHUAL_GEOCODING_ADDRESS = '3110 Boychuk Ave #470g, Colorado Springs, CO 80910';
+
 interface RouteWaypoint {
   address: string;
 }
@@ -22,6 +25,14 @@ interface RoutesApiResponse {
   };
 }
 
+// Helper to get full geocoding address for iHaul locations
+function getGeocodingAddress(displayAddr: string): string {
+  if (displayAddr.toLowerCase().includes('ihaul') && displayAddr.toLowerCase().includes('colorado springs')) {
+    return IHUAL_GEOCODING_ADDRESS;
+  }
+  return displayAddr;
+}
+
 /**
  * POST /api/routes/optimize
  * 
@@ -38,8 +49,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'addresses array is required' }, { status: 400 });
     }
 
-    const start = startAddress || 'iHaul iMove, Colorado Springs, CO';
-    const end = endAddress || start;
+    const displayStart = startAddress || 'iHaul iMove, Colorado Springs, CO';
+    const displayEnd = endAddress || displayStart;
+    
+    // Use full geocoding addresses for API calls
+    const start = getGeocodingAddress(displayStart);
+    const end = getGeocodingAddress(displayEnd);
 
     const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
 

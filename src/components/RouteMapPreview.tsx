@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
+// iHaul brand colors
+const IHUL_NAVY = '#1e3a5f';
+const IHUL_GOLD = '#C5A059';
+
+// Full address for accurate geocoding
+const IHUAL_GEOCODING_ADDRESS = '3110 Boychuk Ave #470g, Colorado Springs, CO 80910';
+
 interface RouteMapPreviewProps {
   stops: string[];
   startLocation: string;
@@ -23,15 +30,29 @@ export default function RouteMapPreview({
 }: RouteMapPreviewProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [mapError, setMapError] = useState(false);
+  const [mapLoading, setMapLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/config/maps-key')
       .then(r => r.json())
-      .then(data => setApiKey(data.apiKey))
+      .then(data => {
+        setApiKey(data.apiKey);
+        if (!data.apiKey) {
+          setMapError(true);
+        }
+      })
       .catch(() => setMapError(true));
   }, []);
 
   if (!isOpen) return null;
+
+  // Helper to get geocoding address (use full address for iHaul locations)
+  const getGeocodingAddress = (displayAddr: string): string => {
+    if (displayAddr.toLowerCase().includes('ihaul') && displayAddr.toLowerCase().includes('colorado springs')) {
+      return IHUAL_GEOCODING_ADDRESS;
+    }
+    return displayAddr;
+  };
 
   // Build the Google Maps Static API URL with markers
   const buildStaticMapUrl = () => {
@@ -39,8 +60,9 @@ export default function RouteMapPreview({
 
     const markers: string[] = [];
     
-    // Start marker (green, labeled S)
-    markers.push(`color:green|label:S|${encodeURIComponent(startLocation)}`);
+    // Start marker (green, labeled S) - use full geocoding address
+    const startGeoAddr = getGeocodingAddress(startLocation);
+    markers.push(`color:green|label:S|${encodeURIComponent(startGeoAddr)}`);
     
     // Stop markers (numbered)
     stops.forEach((stop, index) => {
@@ -48,17 +70,18 @@ export default function RouteMapPreview({
       markers.push(`color:${color}|label:${index + 1}|${encodeURIComponent(stop)}`);
     });
     
-    // End marker (purple, labeled E) - only if different from start
+    // End marker (gold/yellow, labeled E) - only if different from start
+    const endGeoAddr = getGeocodingAddress(endLocation);
     if (endLocation !== startLocation) {
-      markers.push(`color:purple|label:E|${encodeURIComponent(endLocation)}`);
+      markers.push(`color:0xC5A059|label:E|${encodeURIComponent(endGeoAddr)}`);
     }
 
     const markersParam = markers.map(m => `markers=${m}`).join('&');
     
-    // Path connecting all points
-    const allPoints = [startLocation, ...stops, endLocation];
+    // Path connecting all points - use geocoding addresses for accurate path
+    const allPoints = [startGeoAddr, ...stops, endGeoAddr];
     const pathPoints = allPoints.map(p => encodeURIComponent(p)).join('|');
-    const pathParam = `path=color:0x4285F4|weight:3|${pathPoints}`;
+    const pathParam = `path=color:0x1e3a5f|weight:4|${pathPoints}`;
 
     return `https://maps.googleapis.com/maps/api/staticmap?size=640x400&scale=2&maptype=roadmap&${markersParam}&${pathParam}&key=${apiKey}`;
   };
@@ -74,8 +97,8 @@ export default function RouteMapPreview({
         className="bg-white w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
+        {/* Header - iHaul Navy theme */}
+        <div className="text-white p-4" style={{ background: `linear-gradient(to right, ${IHUL_NAVY}, ${IHUL_NAVY})` }}>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">Route Preview</h2>
@@ -97,17 +120,29 @@ export default function RouteMapPreview({
               <div className="animate-pulse text-gray-400">Loading map...</div>
             </div>
           ) : mapError || !staticMapUrl ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 bg-gray-50">
               <span className="text-4xl mb-2">🗺️</span>
-              <p className="text-sm">Map preview unavailable</p>
+              <p className="text-sm font-medium">Map preview unavailable</p>
+              <p className="text-xs text-gray-400 mt-1">Maps Static API may need to be enabled</p>
             </div>
           ) : (
-            <img 
-              src={staticMapUrl} 
-              alt="Route map preview"
-              className="w-full h-full object-cover"
-              onError={() => setMapError(true)}
-            />
+            <>
+              {mapLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                  <div className="animate-pulse text-gray-400">Loading map...</div>
+                </div>
+              )}
+              <img 
+                src={staticMapUrl} 
+                alt="Route map preview"
+                className={`w-full h-full object-cover ${mapLoading ? 'invisible' : 'visible'}`}
+                onLoad={() => setMapLoading(false)}
+                onError={() => {
+                  setMapError(true);
+                  setMapLoading(false);
+                }}
+              />
+            </>
           )}
         </div>
 
@@ -124,14 +159,23 @@ export default function RouteMapPreview({
             {stops.map((stop, index) => (
               <div 
                 key={index} 
-                className={`flex items-center gap-3 text-sm ${currentStopIndex === index ? 'bg-blue-50 -mx-2 px-2 py-1 rounded-lg' : ''}`}
+                className={`flex items-center gap-3 text-sm ${currentStopIndex === index ? '-mx-2 px-2 py-1 rounded-lg' : ''}`}
+                style={currentStopIndex === index ? { backgroundColor: `${IHUL_NAVY}10` } : {}}
               >
-                <span className={`w-6 h-6 rounded-full ${currentStopIndex === index ? 'bg-blue-500' : 'bg-orange-500'} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                <span 
+                  className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{ backgroundColor: currentStopIndex === index ? IHUL_NAVY : '#f97316' }}
+                >
                   {index + 1}
                 </span>
                 <span className="text-gray-700 truncate">{stop}</span>
                 {currentStopIndex === index && (
-                  <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full ml-auto shrink-0">Current</span>
+                  <span 
+                    className="text-xs text-white px-2 py-0.5 rounded-full ml-auto shrink-0"
+                    style={{ backgroundColor: IHUL_NAVY }}
+                  >
+                    Current
+                  </span>
                 )}
               </div>
             ))}
@@ -139,18 +183,24 @@ export default function RouteMapPreview({
             {/* End */}
             {endLocation !== startLocation && (
               <div className="flex items-center gap-3 text-sm">
-                <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold shrink-0">E</span>
+                <span 
+                  className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{ backgroundColor: IHUL_GOLD }}
+                >
+                  E
+                </span>
                 <span className="text-gray-600 truncate">{endLocation}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions - iHaul Navy button */}
         <div className="p-4 border-t border-gray-100 bg-gray-50">
           <button
             onClick={onStartNavigation}
-            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 rounded-2xl transition-colors flex items-center justify-center gap-2 text-lg"
+            className="w-full text-white font-bold py-4 rounded-2xl transition-colors flex items-center justify-center gap-2 text-lg hover:opacity-90 active:opacity-80"
+            style={{ backgroundColor: IHUL_NAVY }}
           >
             🚀 Start Navigation
           </button>
