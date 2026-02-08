@@ -470,6 +470,7 @@ export default function RoutesPage() {
         }
         
         // Show success modal
+        console.log('[optimizeRoute] Setting result with polyline:', data.encodedPolyline ? `${data.encodedPolyline.substring(0, 50)}...` : 'null/undefined');
         setOptimizationResult(data);
       }
     } catch (err) {
