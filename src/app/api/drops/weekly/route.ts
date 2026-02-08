@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
       FROM box_drops bd
       LEFT JOIN realtors r ON bd.realtor_id = r.id
       WHERE (bd.scheduled_date BETWEEN ? AND ?) 
-         OR (bd.scheduled_date IS NULL AND bd.requested_date BETWEEN ? AND ?)
-      ORDER BY COALESCE(bd.scheduled_date, bd.requested_date) ASC
+         OR ((bd.scheduled_date IS NULL OR bd.scheduled_date = '') AND bd.requested_date BETWEEN ? AND ?)
+      ORDER BY COALESCE(NULLIF(bd.scheduled_date, ''), bd.requested_date) ASC
     `,
     args: [weekStart, weekEnd, weekStart, weekEnd],
   });
